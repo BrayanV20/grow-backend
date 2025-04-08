@@ -3,7 +3,14 @@ const cors = require("cors");
 const { MongoClient } = require("mongodb");
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS para permitir llamadas desde el frontend de Vercel
+app.use(cors({
+  origin: "https://firmas-six.vercel.app",
+  methods: ["POST", "GET"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 const uri = "mongodb+srv://auxiliaradmongrow:Brayan20@cluster0.c5sb6sy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -37,4 +44,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🟢 Servidor escuchando en el puerto ${PORT}`);
 });
+
 
