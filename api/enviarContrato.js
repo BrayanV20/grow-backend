@@ -1,14 +1,14 @@
-const { Document, Packer, Paragraph, TextRun } = require("docx");
+const { Document, Packer, Paragraph, TextRun, ImageRun } = require("docx");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
 
 module.exports = async (req, res) => {
-  // ✅ Habilitar CORS
+  // ✅ CORS para permitir peticiones desde el frontend
   res.setHeader("Access-Control-Allow-Origin", "https://firmas-six.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Manejar preflight
+  // Preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -26,7 +26,10 @@ module.exports = async (req, res) => {
     try {
       const { tipo, propiedad, direccion, nit, representante, firma } = JSON.parse(body);
 
-      // 📝 Crear documento Word
+      // Convertir la firma en imagen base64
+      const firmaBuffer = Buffer.from(firma.split(",")[1], "base64");
+
+      // 📝 Crear documento Word con firma incluida
       const doc = new Document({
         sections: [
           {
@@ -39,6 +42,18 @@ module.exports = async (req, res) => {
                   new TextRun(`\nNIT: ${nit}`),
                   new TextRun(`\nRepresentante legal: ${representante}`),
                 ],
+              }),
+              new Paragraph({ text: "\n\nFirma del cliente:" }),
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: firmaBuffer,
+                    transformation: {
+                      width: 200,
+                      height: 100
+                    }
+                  })
+                ]
               }),
             ],
           },
@@ -62,7 +77,7 @@ module.exports = async (req, res) => {
         from: '"Grow Solutions" <auxiliaradmongrow@gmail.com>',
         to: "auxiliaradmongrow@gmail.com",
         subject: `Nuevo contrato - ${propiedad}`,
-        text: "Se ha enviado un nuevo contrato.",
+        text: "Se ha enviado un nuevo contrato con los datos del cliente y su firma.",
         attachments: [
           {
             filename,
@@ -71,7 +86,7 @@ module.exports = async (req, res) => {
         ]
       });
 
-      res.status(200).json({ mensaje: "Contrato enviado correctamente ✅" });
+      res.status(200).json({ mensaje: "Contrato enviado correctamente con firma ✅" });
     } catch (error) {
       console.error("❌ Error:", error);
       res.status(500).json({ error: "Error al procesar o enviar el contrato" });
