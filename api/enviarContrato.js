@@ -3,13 +3,21 @@ const fs = require("fs");
 const nodemailer = require("nodemailer");
 
 module.exports = async (req, res) => {
+  // ✅ Habilitar CORS
+  res.setHeader("Access-Control-Allow-Origin", "https://firmas-six.vercel.app");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // ✅ Manejar preflight
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
   let body = "";
-
-  // 🔄 Recibir body como stream
   req.on("data", chunk => {
     body += chunk;
   });
@@ -22,7 +30,6 @@ module.exports = async (req, res) => {
       const doc = new Document({
         sections: [
           {
-            properties: {},
             children: [
               new Paragraph({
                 children: [
@@ -43,7 +50,6 @@ module.exports = async (req, res) => {
       const filepath = `/tmp/${filename}`;
       fs.writeFileSync(filepath, buffer);
 
-      // 📧 Enviar correo
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -59,10 +65,10 @@ module.exports = async (req, res) => {
         text: "Se ha enviado un nuevo contrato.",
         attachments: [
           {
-            filename: filename,
-            path: filepath,
-          },
-        ],
+            filename,
+            path: filepath
+          }
+        ]
       });
 
       res.status(200).json({ mensaje: "Contrato enviado correctamente ✅" });
